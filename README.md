@@ -103,9 +103,9 @@ import scilight as sl
 # ------------------------------------------------------------------------
 # Download a gzipped fasta file and save it as chrmt.fa.gz
 # ------------------------------------------------------------------------
-url = 'ftp://ftp.ensembl.org/pub/release-100/fasta/'+
+url = 'ftp://ftp.ensembl.org/pub/release-100/fasta/'+ \
       'homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz'
-download_task = sl.shell('wget -O [o:gz:chrmt.fa.gz] '+url)
+download_task = sl.shell(f'wget -O [o:gz:chrmt.fa.gz] {url}')
 
 # ------------------------------------------------------------------------
 # Un-GZip the file, into a file named chrmt.fa
@@ -134,7 +134,7 @@ def count_gcfrac_func(task):
     gc_fraction = gc_count/(gc_count+at_count)
 
     with open(task.outputs['gcfrac'], 'w') as outfile:
-        outfile.write(str(gc_fraction) + '\n')
+        outfile.write(f'{gc_fraction}\n')
 
 # Execute the function
 count_task = sl.func(count_gcfrac_func,
