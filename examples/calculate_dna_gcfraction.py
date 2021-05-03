@@ -1,15 +1,15 @@
-import ey
+import scilight as sl
 
 # ------------------------------------------------------------------------
 # Download a gzipped fasta file and save it as chrmt.fa.gz
 # ------------------------------------------------------------------------
 url = 'ftp://ftp.ensembl.org/pub/release-100/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz'
-download_task = ey.shell('wget -O [o:gz:chrmt.fa.gz] '+url)
+download_task = sl.shell('wget -O [o:gz:chrmt.fa.gz] '+url)
 
 # ------------------------------------------------------------------------
 # Un-GZip the file, into a file named chrmt.fa
 # ------------------------------------------------------------------------
-ungzip_task = ey.shell('zcat [i:gz] > [o:fa:[i:gz|%.gz]]',
+ungzip_task = sl.shell('zcat [i:gz] > [o:fa:[i:gz|%.gz]]',
         inputs={'gz': download_task.outputs['gz']})
 
 # ------------------------------------------------------------------------
@@ -36,6 +36,6 @@ def count_gcfrac_func(task):
         outfile.write(str(gc_fraction) + '\n')
 
 # Execute the function
-count_task = ey.func(count_gcfrac_func,
+count_task = sl.func(count_gcfrac_func,
         inputs={'fa': ungzip_task.outputs['fa']},
         outputs={'gcfrac': 'gcfrac.txt'})

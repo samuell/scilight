@@ -1,56 +1,57 @@
-# Ey - Radically simple task execution in Python scripts
+# SciLight - Simple task execution in Python scripts
 
-[![CircleCI](https://circleci.com/gh/samuell/ey.svg?style=shield)](https://app.circleci.com/pipelines/github/samuell/ey)
-[![PyPI](https://img.shields.io/pypi/v/ey.svg?style=flat)](https://pypi.org/project/ey)
+[![CircleCI](https://circleci.com/gh/samuell/scilight.svg?style=shield)](https://app.circleci.com/pipelines/github/samuell/scilight)
+[![PyPI](https://img.shields.io/pypi/v/scilight.svg?style=flat)](https://pypi.org/project/scilight)
 
-A super-simple library for performing stepwise batch tasks (implemented as
-shell commands, or python functions) that saves things to files, such that
-outputs from already finished tasks are not needlessly re-computed. See the
+A super-simple library for performing stepwise batch tasks (implemented as shell
+commands, or python functions) that saves things to files, such that outputs
+from already finished tasks are not needlessly re-computed. See the
 [below](#example) for an example.
 
-Ey does not have a scheduler or central worker pool or anything like that. Instead
-you simply execute your tasks manually in a procedural way. This way task executions
-can easily be mixed with other procedural python code.
+SciLight does not (currently) have a scheduler or central worker pool or
+anything like that. Instead you simply execute your tasks manually in a
+procedural way. This way task executions can easily be mixed with other
+procedural python code.
 
-Ey can work as an alternative to full-blown workflow frameworks like Luigi or
-Airflow for cases when you just have a single python script, where you want to
-do a few batch steps before starting your interactive analysis, such as
+SciLight can work as an alternative to full-blown workflow frameworks like Luigi
+or Airflow for cases when you just have a single python script, where you want
+to do a few batch steps before starting your interactive analysis, such as
 downloading datasets, unpacking them, preprocessing et cetera.
 
-Ey is small (not much more than 100 lines of code), and has no external
+SciLight is small (not much more than 100 lines of code), and has no external
 dependencies, meaning that you can even copy the implementation into your own
 code repos if you want to ensure maximum future reproducibility.
 
-## 'Ey' what?
+## What does 'SciLight' mean?
 
-For anyeone left confused by the name, 'Ey' is [urban slang](https://www.urbandictionary.com/define.php?term=ey)
-meaning things like "Hey", "Hi", "Oh" or even "Hey, let's".
-It reflects how relaxed you can be while using this library, as it is so simple
-that to execute a shell command, you can just go: "Ey, shell ... yada yada", or
-more precisely: `ey.shell('yada yada...')` :)
+SciLight is named as such, as being a lighter version of
+[SciPipe](https://scipipe.org), also written by the author, in Go.  If you need
+true multicore-performance and a compiled language, you might want to have a
+look at SciPipe instead.
 
 ## Prerequisites
 
-- Ey is so far only tested on unix-like environments.
+- SciLight is so far only tested on unix-like environments (it is runnable on Windows
+  via Windows Sybsystem for Linux (WSL)).
 
 ## Installation
 
 Install from the Python Package Index using pip:
 
 ```
-pip install ey
+pip install scilight
 ```
 
 ## Usage
 
-Ey works by specifying either a shell command, or a python function, to
-be executed, as the first argument to `ey.shell()` or `ey.func()` respectively.
+SciLight works by specifying either a shell command, or a python function to
+be executed, as the first argument to `scilight.shell()` or `scilight.func()` respectively.
 
 In shell commands, you need to replace input and output file paths with
 placeholders on the form of `[i:inputname]` and `[o:outputname:outputpath]`
 respectively.  You will also need to provide dicts which specify the paths to
 the inputs and outputs, as appropriate, by providing them to the optional
-`inputs` and `outputs` parameters of `ey.shell()` and `ey.func()`. See the
+`inputs` and `outputs` parameters of `scilight.shell()` and `scilight.func()`. See the
 example below for a concrete example.
 
 Inputs should always be provided via the `input`-parameter, while output paths
@@ -97,19 +98,19 @@ The two first tasks are done by executing shell commands, and the second one
 using a python function.
 
 ```python
-import ey
+import scilight as sl
 
 # ------------------------------------------------------------------------
 # Download a gzipped fasta file and save it as chrmt.fa.gz
 # ------------------------------------------------------------------------
 url = 'ftp://ftp.ensembl.org/pub/release-100/fasta/'+
       'homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz'
-download_task = ey.shell('wget -O [o:gz:chrmt.fa.gz] '+url)
+download_task = sl.shell('wget -O [o:gz:chrmt.fa.gz] '+url)
 
 # ------------------------------------------------------------------------
 # Un-GZip the file, into a file named chrmt.fa
 # ------------------------------------------------------------------------
-ungzip_task = ey.shell('zcat [i:gz] > [o:fa:[i:gz|%.gz]]',
+ungzip_task = sl.shell('zcat [i:gz] > [o:fa:[i:gz|%.gz]]',
         inputs={'gz': download_task.outputs['gz']})
 
 # ------------------------------------------------------------------------
@@ -136,7 +137,7 @@ def count_gcfrac_func(task):
         outfile.write(str(gc_fraction) + '\n')
 
 # Execute the function
-count_task = ey.func(count_gcfrac_func,
+count_task = sl.func(count_gcfrac_func,
         inputs={'fa': ungzip_task.outputs['fa']},
         outputs={'gcfrac': 'gcfrac.txt'})
 ```
