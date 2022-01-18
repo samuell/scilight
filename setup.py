@@ -11,7 +11,7 @@ with open("README.md") as fh:
 
 setup(
     name="scilight",
-    version="0.4.1",
+    version="0.5.0",
     description="Workflow library in pure python, for executing shell commands saving data to the file system without re-executing already executed tasks.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -32,9 +32,7 @@ setup(
         "Natural Language :: English",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.6",
     ],
 )
