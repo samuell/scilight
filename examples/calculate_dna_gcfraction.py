@@ -3,14 +3,15 @@ import scilight as sl
 # ------------------------------------------------------------------------
 # Download a gzipped fasta file and save it as chrmt.fa.gz
 # ------------------------------------------------------------------------
-url = 'ftp://ftp.ensembl.org/pub/release-100/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz'
-download_task = sl.shell('wget -O [o:gz:chrmt.fa.gz] '+url)
+url = "ftp://ftp.ensembl.org/pub/release-100/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz"
+download_task = sl.shell(f"wget -O [o:gz:chrmt.fa.gz] {url}")
 
 # ------------------------------------------------------------------------
 # Un-GZip the file, into a file named chrmt.fa
 # ------------------------------------------------------------------------
-ungzip_task = sl.shell('zcat [i:gz] > [o:fa:[i:gz|%.gz]]',
-        inputs={'gz': download_task.outputs['gz']})
+ungzip_task = sl.shell(
+    "zcat [i:gz] > [o:fa:[i:gz|%.gz]]", inputs={"gz": download_task.outputs["gz"]}
+)
 
 # ------------------------------------------------------------------------
 # Count the fraction of G+C, vs G+C+A+T
@@ -20,22 +21,25 @@ def count_gcfrac_func(task):
     gc_count = 0
     at_count = 0
 
-    with open(task.inputs['fa']) as infile:
+    with open(task.inputs["fa"]) as infile:
         for line in infile:
-            if line[0] == '>':
+            if line[0] == ">":
                 continue
             for char in line:
-                if char in ['A', 'T']:
+                if char in ["A", "T"]:
                     at_count += 1
-                elif char in ['G', 'C']:
+                elif char in ["G", "C"]:
                     gc_count += 1
 
-    gc_fraction = gc_count/(gc_count+at_count)
+    gc_fraction = gc_count / (gc_count + at_count)
 
-    with open(task.outputs['gcfrac'], 'w') as outfile:
-        outfile.write(str(gc_fraction) + '\n')
+    with open(task.outputs["gcfrac"], "w") as outfile:
+        outfile.write(str(gc_fraction) + "\n")
+
 
 # Execute the function
-count_task = sl.func(count_gcfrac_func,
-        inputs={'fa': ungzip_task.outputs['fa']},
-        outputs={'gcfrac': 'gcfrac.txt'})
+count_task = sl.func(
+    count_gcfrac_func,
+    inputs={"fa": ungzip_task.outputs["fa"]},
+    outputs={"gcfrac": "gcfrac.txt"},
+)
