@@ -1,9 +1,10 @@
 import subprocess as sp
 from subprocess import CompletedProcess
-import re
 import os
-import shutil
 import os.path
+import pathlib
+import re
+import shutil
 from typing import Callable, Dict
 
 
@@ -26,6 +27,12 @@ class Task:
                 )
                 return True
         return False
+
+    def _ensure_output_folders_exist(self) -> None:
+        for out_path in self.outputs.values():
+            parent_dir = pathlib.Path(out_path).parent
+            if not parent_dir.exists():
+                os.makedirs(parent_dir)
 
     def _move_tempfiles_to_final_path(self) -> None:
         for _, path in self.outputs.items():
@@ -50,6 +57,8 @@ class FuncTask(Task):
     def execute(self) -> None:
         if self._outputs_exist():
             return
+
+        self._ensure_output_folders_exist()
 
         if self.tempfiles:
             # Make paths into temp paths
@@ -91,6 +100,8 @@ class ShellTask(Task):
     def execute(self) -> None:
         if self._outputs_exist():
             return
+
+        self._ensure_output_folders_exist()
 
         out = self._execute_shell_command_get_all_output(
             self.command, self.temp_command

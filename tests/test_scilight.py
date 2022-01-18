@@ -49,12 +49,12 @@ def test_replace_ports():
 
 def test_sl_shell():
     sl.shell(
-        "wget -O [o:gz:/tmp/chrmt.fa.gz] ftp://ftp.ensembl.org/pub/release-100/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz"
+        "wget -O [o:gz:/tmp/testdir/testsubdir/chrmt.fa.gz] ftp://ftp.ensembl.org/pub/release-100/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.MT.fa.gz"
     )
-    if not os.path.isfile("/tmp/chrmt.fa.gz"):
+    if not os.path.isfile("/tmp/testdir/testsubdir/chrmt.fa.gz"):
         fail("download did not succeed")
 
-    os.remove("/tmp/chrmt.fa.gz")
+    shutil.rmtree("/tmp/testdir")
 
 
 def test_sl_func():
