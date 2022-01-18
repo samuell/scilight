@@ -85,6 +85,14 @@ the following to extract the archive, removing the `.gz` file extension and
 putting the extracted file in a new directory named `other-directory`:
 `zcat [i:archivefile] > other-directory/[o:unpacked:[i:archivefile|basename|%.gz]]`
 
+### Search and replace in paths
+
+Sometimes you want to clean up paths in more creative ways. This could be for
+example replacing spaces with `_`, to avoid problems on Unix-like systems.
+This can be done inside path formatters by using the format
+`[i:myinput|s/SEARCH/REPLACE/]`, so, replacing spaces with underscores would be
+`[i:myinput|s/ /_/]`.
+
 See the example below for how to use some of this in practice!
 
 ## Example

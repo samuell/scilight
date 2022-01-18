@@ -65,6 +65,11 @@ class Task:
                     if mod[0] == "%":
                         extlen = len(mod[1:])
                         path = path[0:-extlen]
+                    if mod[0] == "s":
+                        mod_parts = re.match(r"s\/([^/]+)\/([^/]+)\/", mod, flags=re.S)
+                        search = mod_parts[1]
+                        replace = mod_parts[2]
+                        path = path.replace(search, replace)
                     # Take basename of path, if |basename modifier is found
                     if mod == "basename":
                         path = os.path.basename(path)
