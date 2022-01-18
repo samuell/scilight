@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import scilight as sl
 
 
-def test_replace_ports():
+def test_replace_placeholders():
     task = sl.ShellTask("", inputs={"gz": "data/chrmt.fa.gz"})
     for cmdpattern, expected_cmd, expected_temp_cmd in [
         ("wget -O [o:fasta:chrmt.fa]", "wget -O chrmt.fa", "wget -O chrmt.fa.tmp"),
@@ -32,7 +32,7 @@ def test_replace_ports():
             "zcat data/chrmt.fa.gz > chrmt.fa.tmp",
         ),
     ]:
-        cmd, temp_cmd = task._replace_ports(cmdpattern)
+        cmd, temp_cmd = task._replace_placeholders(cmdpattern)
         if cmd != expected_cmd:
             fail(
                 'Expected command: "{expected}", but got "{actual}"'.format(
@@ -55,6 +55,22 @@ def test_sl_shell():
         fail("download did not succeed")
 
     shutil.rmtree("/tmp/testdir")
+
+
+def test_output_path_formatting():
+    t1 = sl.shell(
+        "echo hej > [o:hej:/tmp/hej.txt]"
+    )
+    t2 = sl.shell(
+        "cat [i:hej] > [o:hejdaa]",
+        inputs={"hej": t1.outputs["hej"]},
+        outputs={"hejdaa": "[i:hej|%.txt].daa.txt"}
+    )
+    expected_output_file = "/tmp/hej.daa.txt"
+    if not os.path.isfile(expected_output_file):
+        fail(f"Failed to create file {expected_output_file}!")
+
+    os.remove(expected_output_file)
 
 
 def test_sl_func():
