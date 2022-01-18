@@ -1,38 +1,10 @@
 import subprocess as sp
+from subprocess import CompletedProcess
 import re
 import os
 import shutil
 import os.path
-
-
-def shell(command, **kwargs):
-    inputs = {}
-    outputs = {}
-    options = {}
-    if "inputs" in kwargs:
-        inputs = kwargs["inputs"]
-    if "outputs" in kwargs:
-        outputs = kwargs["outputs"]
-    if "options" in kwargs:
-        options = kwargs["options"]
-    task = ShellTask(command, inputs, outputs, options)
-    task.execute()
-    return task
-
-
-def func(func, **kwargs):
-    inputs = {}
-    outputs = {}
-    options = {}
-    if "inputs" in kwargs:
-        inputs = kwargs["inputs"]
-    if "outputs" in kwargs:
-        outputs = kwargs["outputs"]
-    if "options" in kwargs:
-        options = kwargs["options"]
-    task = FuncTask(func, inputs, outputs, options)
-    task.execute()
-    return task
+from typing import Callable, Dict
 
 
 class Task:
@@ -40,10 +12,10 @@ class Task:
     Super-class for tasks.
     """
 
-    def execute(self):
+    def execute(self) -> None:
         raise NotImplementedError("execute method not implemented")
 
-    def _outputs_exist(self):
+    def _outputs_exist(self) -> bool:
         for name, path in self.outputs.items():
             if os.path.exists(path + ".tmp"):
                 raise Exception("Existing temp files found: %s.tmp" % path)
@@ -55,13 +27,19 @@ class Task:
                 return True
         return False
 
-    def _move_tempfiles_to_final_path(self):
+    def _move_tempfiles_to_final_path(self) -> None:
         for _, path in self.outputs.items():
             shutil.move("%s.tmp" % path, path)
 
 
 class FuncTask(Task):
-    def __init__(self, func, inputs={}, outputs={}, options={}):
+    def __init__(
+        self,
+        func,
+        inputs: Dict[str, str] = {},
+        outputs: Dict[str, str] = {},
+        options: Dict[str, str] = {},
+    ):
         self.inputs = inputs
         self.outputs = outputs
         self.func = func
@@ -69,7 +47,7 @@ class FuncTask(Task):
         if "tempfiles" in options:
             self.tempfiles = options["tempfiles"]
 
-    def execute(self):
+    def execute(self) -> None:
         if self._outputs_exist():
             return
 
@@ -93,7 +71,13 @@ class FuncTask(Task):
 
 
 class ShellTask(Task):
-    def __init__(self, command, inputs={}, outputs={}, options={}):
+    def __init__(
+        self,
+        command: str,
+        inputs: Dict[str, str] = {},
+        outputs: Dict[str, str] = {},
+        options: Dict[str, str] = {},
+    ):
         self.inputs = inputs
         self.outputs = outputs
         self.command, self.temp_command = self._replace_ports(command)
@@ -104,11 +88,13 @@ class ShellTask(Task):
     # ------------------------------------------------
     # Public methods
     # ------------------------------------------------
-    def execute(self):
+    def execute(self) -> None:
         if self._outputs_exist():
             return
 
-        out = self._execute_shell_command(self.command, self.temp_command)
+        out = self._execute_shell_command_get_all_output(
+            self.command, self.temp_command
+        )
         self._add_cmd_results(out)
         if self.tempfiles:
             self._move_tempfiles_to_final_path()
@@ -116,7 +102,9 @@ class ShellTask(Task):
     # ------------------------------------------------
     # Internal methods
     # ------------------------------------------------
-    def _execute_shell_command(self, command, temp_command):
+    def _execute_shell_command_get_all_output(
+        self, command: str, temp_command: str
+    ) -> CompletedProcess:
         print("Executing command: %s" % command)
         cmd = command
         if self.tempfiles:
@@ -126,13 +114,13 @@ class ShellTask(Task):
         )
         return out
 
-    def _add_cmd_results(self, cmdout):
+    def _add_cmd_results(self, cmdout: CompletedProcess):
         self.args = cmdout.args
         self.returncode = cmdout.returncode
         self.stdout = cmdout.stdout
         self.stderr = cmdout.stderr
 
-    def _replace_ports(self, command):
+    def _replace_ports(self, command: str):
         # In-ports
         ms = re.findall(r"(\[i\:([^:\]\|]*)(\|([^\]]+))?\])", command, flags=re.S)
         for m in ms:
@@ -169,3 +157,25 @@ class ShellTask(Task):
             temp_command = temp_command.replace(placeholder, temppath)
 
         return command, temp_command
+
+
+def shell(
+    command: str,
+    inputs: Dict[str, str] = {},
+    outputs: Dict[str, str] = {},
+    options: Dict[str, str] = {},
+):
+    task = ShellTask(command, inputs, outputs, options)
+    task.execute()
+    return task
+
+
+def func(
+    func: Callable[[FuncTask], None],
+    inputs: Dict[str, str] = {},
+    outputs: Dict[str, str] = {},
+    options: Dict[str, str] = {},
+):
+    task = FuncTask(func, inputs, outputs, options)
+    task.execute()
+    return task
