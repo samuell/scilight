@@ -5,6 +5,7 @@ import os.path
 import pathlib
 import re
 import shutil
+import sys
 from typing import Callable, Dict
 
 
@@ -173,9 +174,14 @@ class ShellTask(Task):
         cmd = command
         if self.tempfiles:
             cmd = temp_command
-        out = sp.run(
-            cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE, check=True, shell=True
-        )
+        out = sp.run(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
+        if out.returncode != 0:
+            print(f"ERROR: Command returned a non-zero return code: {cmd}")
+            print("STDERR:")
+            print(str(out.stderr).replace("\\n", "\n"))
+            print("STDOUT:")
+            print(str(out.stdout).replace("\\n", "\n"))
+            sys.exit(1)
         return out
 
     def _add_cmd_results(self, cmdout: CompletedProcess):
