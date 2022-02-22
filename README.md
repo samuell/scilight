@@ -49,12 +49,14 @@ be executed, as the first argument to `scilight.shell()` or `scilight.func()` re
 
 In shell commands, you need to replace input and output file paths with
 placeholders on the form of `[i:inputname]` and `[o:outputname:outputpath]`
-respectively.  You will also need to provide dicts which specify the paths to
-the inputs and outputs, as appropriate, by providing them to the optional
-`inputs` and `outputs` parameters of `scilight.shell()` and `scilight.func()`. See the
-example below for a concrete example.
+respectively. Additionally, you can provide parameters (as string values) using
+the `[p:paramname]` syntax. You will also need to provide dicts which specify
+the paths to the inputs, outputs and parameters as appropriate, by providing
+them to the optional `inputs`, `outputs` and `params` parameters of
+`scilight.shell()` and `scilight.func()`. See the example below for a concrete
+example.
 
-Inputs should always be provided via the `input`-parameter, while output paths
+Inputs should always be provided via the `inputs`-parameter, while output paths
 are easiest to provide inline in the command, in the respective placeholder.
 Note that you can re-use input placeholder values to produce the output path.
 So, for example, if you want to name your output the same as the input, but

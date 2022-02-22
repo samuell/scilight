@@ -18,13 +18,17 @@ class Task:
         self,
         inputs: Dict[str, str] = {},
         outputs: Dict[str, str] = {},
+        params: Dict[str, str] = {},
         options: Dict[str, str] = {},
     ):
         self.inputs = inputs
+        self.params = params
+
         self.outputs = {}
         for outname, outpath in outputs.items():
             outpath, _ = self._replace_placeholders(outpath)
             self.outputs[outname] = outpath
+
         self.tempfiles = True
         if "tempfiles" in options:
             self.tempfiles = options["tempfiles"]
@@ -77,8 +81,28 @@ class Task:
 
             shell = shell.replace(placeholder, path)
 
-        # Out-ports
+        # Parameters
+        ms = re.findall(r"(\[p\:([^:\]\|]*)(\|([^\]]+))?\])", shell, flags=re.S)
+        for m in ms:
+            placeholder = m[0]
+            param_name = m[1]
+            param_value = self.params[param_name]
+
+            if m[3] != "":
+                modifiers = m[3]
+                mods = modifiers.strip("|").split("|")
+                for mod in mods:
+                    # Replace extensions specified with |%.ext modifier
+                    if mod[0] == "s":
+                        mod_parts = re.match(r"s\/([^/]+)\/([^/]+)\/", mod, flags=re.S)
+                        search = mod_parts[1]
+                        replace = mod_parts[2]
+                        param_value = param_value.replace(search, replace)
+
+            shell = shell.replace(placeholder, param_value)
+
         temp_shell = shell
+        # Out-ports
         ms = re.findall(r"(\[o\:([^:\]]*)(:([^:\]]+))?\])", shell, flags=re.S)
         for m in ms:
             placeholder = m[0]
@@ -107,9 +131,10 @@ class FuncTask(Task):
         func,
         inputs: Dict[str, str] = {},
         outputs: Dict[str, str] = {},
+        params: Dict[str, str] = {},
         options: Dict[str, str] = {},
     ):
-        super(FuncTask, self).__init__(inputs, outputs, options)
+        super(FuncTask, self).__init__(inputs, outputs, params, options)
         self.func = func
 
     def execute(self) -> None:
@@ -143,9 +168,10 @@ class ShellTask(Task):
         command: str,
         inputs: Dict[str, str] = {},
         outputs: Dict[str, str] = {},
+        params: Dict[str, str] = {},
         options: Dict[str, str] = {},
     ):
-        super(ShellTask, self).__init__(inputs, outputs, options)
+        super(ShellTask, self).__init__(inputs, outputs, params, options)
         self.command, self.temp_command = self._replace_placeholders(command)
 
     # ------------------------------------------------
@@ -195,14 +221,15 @@ def shell(
     command: str,
     inputs: Dict[str, str] = {},
     outputs: Dict[str, str] = {},
+    params: Dict[str, str] = {},
     options: Dict[str, str] = {},
 ) -> ShellTask:
     """
     Return a new shell task configured by the shell command `command` and
     dictionaries for inputs and outputs (with names as keys and path formats as
-    values) and options.
+    values), params and options.
     """
-    task = ShellTask(command, inputs, outputs, options)
+    task = ShellTask(command, inputs, outputs, params, options)
     task.execute()
     return task
 
@@ -211,8 +238,9 @@ def func(
     func: Callable[[FuncTask], None],
     inputs: Dict[str, str] = {},
     outputs: Dict[str, str] = {},
+    params: Dict[str, str] = {},
     options: Dict[str, str] = {},
 ) -> FuncTask:
-    task = FuncTask(func, inputs, outputs, options)
+    task = FuncTask(func, inputs, outputs, params, options)
     task.execute()
     return task

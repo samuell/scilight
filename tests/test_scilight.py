@@ -64,9 +64,10 @@ def test_output_path_formatting():
     t2 = sl.shell(
         "cat [i:hej] > [o:hejdaa]",
         inputs={"hej": t1.outputs["hej"]},
-        outputs={"hejdaa": "[i:hej|%.txt|s/hej/hi/].daa.txt"}
+        outputs={"hejdaa": "[i:hej|%.txt|s/hej/hi/].daa.foo_[p:foo].txt"},
+        params={"foo": "bar"}
     )
-    expected_output_file = "/tmp/hi.daa.txt"
+    expected_output_file = "/tmp/hi.daa.foo_bar.txt"
     if not os.path.isfile(expected_output_file):
         fail(f"Failed to create file {expected_output_file}!")
 
