@@ -21,8 +21,12 @@ class Task:
         params: Dict[str, str] = {},
         options: Dict[str, str] = {},
     ):
-        self.inputs = inputs
         self.params = params
+
+        self.inputs = {}
+        for inname, inpath in inputs.items():
+            inpath, _ = self._replace_placeholders(inpath)
+            self.inputs[inname] = inpath
 
         self.outputs = {}
         for outname, outpath in outputs.items():
@@ -102,6 +106,7 @@ class Task:
             shell = shell.replace(placeholder, param_value)
 
         temp_shell = shell
+
         # Out-ports
         ms = re.findall(r"(\[o\:([^:\]]*)(:([^:\]]+))?\])", shell, flags=re.S)
         for m in ms:
