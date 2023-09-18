@@ -1,10 +1,12 @@
-import subprocess as sp
-from subprocess import CompletedProcess
+import datetime as dt
+import json
 import os
 import os.path
 import pathlib
 import re
 import shutil
+import subprocess as sub
+from subprocess import CompletedProcess
 import sys
 from typing import Callable, Dict
 
@@ -188,38 +190,106 @@ class ShellTask(Task):
 
         self._ensure_output_folders_exist()
 
-        out = self._execute_shell_command_get_all_output(
+        start_time = dt.datetime.now()
+        stdout, stderr, retcode = self._execute_shell_command(
             self.command, self.temp_command
         )
-        self._add_cmd_results(out)
+        end_time = dt.datetime.now()
+
         if self.tempfiles:
             self._move_tempfiles_to_final_path()
+
+        self._write_audit_files(
+            self.command,
+            self.inputs.values(),
+            self.outputs.values(),
+            start_time,
+            end_time,
+            False,
+        )
 
     # ------------------------------------------------
     # Internal methods
     # ------------------------------------------------
-    def _execute_shell_command_get_all_output(
+    def _execute_shell_command(
         self, command: str, temp_command: str
     ) -> CompletedProcess:
-        print("Executing command: %s" % command)
-        cmd = command
         if self.tempfiles:
-            cmd = temp_command
-        out = sp.run(cmd, stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
+            command = temp_command
+        print(f"Executing: {command} ...")
+        out = sub.run(
+            command,
+            shell=True,
+            stdout=sub.PIPE,
+            stderr=sub.PIPE,
+            text=True,
+            check=True,
+        )
+        if out.stdout:
+            print(f"OUTPUT: {out.stdout}")
+        if out.stderr:
+            print(f"ERRORS: {out.stderr}")
         if out.returncode != 0:
-            print(f"ERROR: Command returned a non-zero return code: {cmd}")
-            print("STDERR:")
-            print(str(out.stderr).replace("\\n", "\n"))
-            print("STDOUT:")
-            print(str(out.stdout).replace("\\n", "\n"))
-            sys.exit(1)
-        return out
+            raise Exception(
+                f"Command failed with returncode {out.returncode}: {command}"
+            )
+        return out.stdout.strip(), out.stderr.strip(), out.returncode
 
-    def _add_cmd_results(self, cmdout: CompletedProcess):
-        self.args = cmdout.args
-        self.returncode = cmdout.returncode
-        self.stdout = cmdout.stdout
-        self.stderr = cmdout.stderr
+    def _write_audit_files(
+        self,
+        command,
+        input_paths,
+        output_paths,
+        start_time,
+        end_time,
+        merge_audit_files,
+    ):
+        audit_extension = ".au.json"
+
+        dur = end_time - start_time
+        d = int(dur.days)
+        h, rem = divmod(dur.seconds, 3600)
+        m, rem = divmod(rem, 60)
+        s = rem
+        mus = int(dur.microseconds)
+
+        s_float = float(f"{dur.seconds}.{dur.microseconds:06d}")
+
+        iso_datetime_fmt = "%Y-%m-%dT%H:%M:%S.%fZ"
+
+        inputs = [{"url": inpath} for inpath in input_paths]
+        outputs = [{"url": outpath} for outpath in output_paths]
+
+        audit_info = {
+            "inputs": inputs,
+            "outputs": outputs,
+            "executors": [
+                {
+                    "image": None,
+                    "command": command.split(" "),
+                }
+            ],
+            "tags": {
+                "start_time": start_time.strftime(iso_datetime_fmt),
+                "end_time": end_time.strftime(iso_datetime_fmt),
+                "duration": f"{d}-{h:02d}:{m:02d}:{s:02d}.{mus:06d}",
+                "duration_s": s_float,
+            },
+        }
+
+        # Merge input audits into the final one
+        if merge_audit_files:
+            for path in input_paths:
+                audit_path = f"{path}.au.json"
+                if os.path.exists(path):
+                    with open(audit_path) as audit_f:
+                        upstream_audit_info = json.load(audit_f)
+                    audit_info["upstream"][path] = upstream_audit_info
+
+        for path in output_paths:
+            audit_path = f"{path}.au.json"
+            with open(audit_path, "w") as audit_f:
+                json.dump(audit_info, audit_f, indent=2)
 
 
 def shell(
