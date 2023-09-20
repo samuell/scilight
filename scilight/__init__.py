@@ -217,23 +217,38 @@ class ShellTask(Task):
         if self.tempfiles:
             command = temp_command
         print(f"Executing: {command} ...")
-        out = sub.run(
-            command,
-            shell=True,
-            stdout=sub.PIPE,
-            stderr=sub.PIPE,
-            text=True,
-            check=True,
-        )
-        if out.stdout:
-            print(f"OUTPUT: {out.stdout}")
-        if out.stderr:
-            print(f"ERRORS: {out.stderr}")
-        if out.returncode != 0:
-            raise Exception(
-                f"Command failed with returncode {out.returncode}: {command}"
+        fail = False
+        try:
+            out = sub.run(
+                command,
+                shell=True,
+                stdout=sub.PIPE,
+                stderr=sub.PIPE,
+                text=True,
+                check=True,
             )
-        return out.stdout.strip(), out.stderr.strip(), out.returncode
+
+            if out.stdout:
+                print("=" * 80)
+                print(f"STDOUT:")
+                print(out.stdout)
+            if out.stderr:
+                print("=" * 80)
+                print(f"STDERR:")
+                print(out.stderr)
+
+            if out.stdout or out.stderr:
+                print("=" * 80)
+
+            if out.returncode != 0:
+                raise Exception(
+                    f"Command failed with returncode {out.returncode}: {command}\nSTDERR: {out.stderr}"
+                )
+            return out.stdout.strip(), out.stderr.strip(), out.returncode
+        except Exception as e:
+            print(f"ERROR: {e}")
+
+        return "", "", 1
 
     def _write_audit_files(
         self,
