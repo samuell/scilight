@@ -225,7 +225,6 @@ class ShellTask(Task):
                 stdout=sub.PIPE,
                 stderr=sub.PIPE,
                 text=True,
-                check=True,
             )
 
             if out.stdout:
